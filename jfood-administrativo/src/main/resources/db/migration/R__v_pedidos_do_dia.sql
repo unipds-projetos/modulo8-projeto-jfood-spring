@@ -18,11 +18,13 @@ SELECT p.id                AS pedido_id,
        p.taxa_entrega,
        uc.nome             AS cliente,
        r.nome              AS restaurante,
-       ue.nome             AS entregador
+       ue.nome             AS entregador,
+       pg.metodo           AS metodo_pagamento
   FROM pedido p
  INNER JOIN cliente c      ON c.usuario_id = p.cliente_id
  INNER JOIN usuario uc     ON uc.id = c.usuario_id
  INNER JOIN restaurante r  ON r.id = p.restaurante_id
   LEFT JOIN entregador e   ON e.usuario_id = p.entregador_id
   LEFT JOIN usuario ue     ON ue.id = e.usuario_id
+  LEFT JOIN pagamento pg   ON pg.pedido_id = p.id
  WHERE p.data_pedido >= CURRENT_DATE;
