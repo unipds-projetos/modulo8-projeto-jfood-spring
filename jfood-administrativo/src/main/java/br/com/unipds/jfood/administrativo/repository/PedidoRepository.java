@@ -3,8 +3,12 @@ package br.com.unipds.jfood.administrativo.repository;
 import br.com.unipds.jfood.administrativo.domain.Pedido;
 import br.com.unipds.jfood.administrativo.domain.StatusPedido;
 import br.com.unipds.jfood.administrativo.repository.projection.ResumoPedido;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -122,4 +126,62 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
                       FOR UPDATE SKIP LOCKED
                    """, nativeQuery = true)
     List<Pedido> buscarLoteParaDespacho(@Param("limite") int limite);
+
+    // =========================================================================
+    // Aula 6 — inteligencia no banco e paginacao
+    // =========================================================================
+
+    /**
+     * Chama a funcao PL/pgSQL. Para funcao que devolve escalar, a query nativa e
+     * o caminho mais direto -- para funcao que devolve conjunto de linhas, seria
+     * StoredProcedureQuery via EntityManager.
+     */
+    @Query(value = "SELECT calcular_taxa_entrega(:pedidoId)", nativeQuery = true)
+    BigDecimal calcularTaxaEntrega(@Param("pedidoId") Long pedidoId);
+
+    /**
+     * Paginacao por OFFSET.
+     *
+     * O custo cresce com o numero da pagina: para devolver 10 linhas da pagina
+     * 5.000, o banco le e DESCARTA 50.000. Toda Page custa ainda uma segunda
+     * consulta, o COUNT(*) que alimenta totalElements.
+     *
+     * A ordenacao e por (dataPedido, id), e o id nao e enfeite: sem um criterio
+     * de desempate deterministico, dois pedidos do mesmo instante podem aparecer
+     * na pagina 2 e na 3, e outro em nenhuma das duas.
+     */
+    @Query(value = """
+                   SELECT p FROM Pedido p
+                     JOIN FETCH p.restaurante
+                     LEFT JOIN FETCH p.entregador
+                    WHERE p.cliente.id = :clienteId
+                    ORDER BY p.dataPedido DESC, p.id DESC
+                   """,
+           countQuery = "SELECT COUNT(p) FROM Pedido p WHERE p.cliente.id = :clienteId")
+    Page<Pedido> listarHistoricoPaginado(@Param("clienteId") Long clienteId, Pageable pageable);
+
+    /**
+     * Paginacao por KEYSET (cursor).
+     *
+     * Em vez de pular linhas, ancora na ultima lida: o banco usa o indice e vai
+     * DIRETO ao ponto. O custo e o mesmo na pagina 1 e na pagina 5.000.
+     *
+     * A comparacao de tupla -- (data_pedido, id) < (:ultimaData, :ultimoId) --
+     * e o que torna a ancora correta quando ha empate na data. Comparar so a
+     * data pularia ou repetiria pedidos do mesmo instante.
+     *
+     * A limitacao e real: nao da para "ir para a pagina 500". Se o produto exige
+     * esse salto, offset e a escolha certa -- em uma base pequena.
+     */
+    @Query(value = """
+                   SELECT p.* FROM pedido p
+                    WHERE p.cliente_id = :clienteId
+                      AND (p.data_pedido, p.id) < (:ultimaData, :ultimoId)
+                    ORDER BY p.data_pedido DESC, p.id DESC
+                    LIMIT :tamanho
+                   """, nativeQuery = true)
+    List<Pedido> listarHistoricoKeyset(@Param("clienteId") Long clienteId,
+                                       @Param("ultimaData") OffsetDateTime ultimaData,
+                                       @Param("ultimoId") Long ultimoId,
+                                       @Param("tamanho") int tamanho);
 }

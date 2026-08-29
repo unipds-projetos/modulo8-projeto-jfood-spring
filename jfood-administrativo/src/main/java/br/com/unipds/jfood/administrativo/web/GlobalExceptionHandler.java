@@ -3,6 +3,7 @@ package br.com.unipds.jfood.administrativo.web;
 import br.com.unipds.jfood.administrativo.service.CupomIndisponivelException;
 import br.com.unipds.jfood.administrativo.service.PedidoNaoEncontradoException;
 import br.com.unipds.jfood.administrativo.service.StatusPedidoInvalidoException;
+import br.com.unipds.jfood.administrativo.service.TaxaNaoRecalculavelException;
 import br.com.unipds.jfood.administrativo.service.gateway.PagamentoRecusadoException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import java.util.Map;
@@ -43,6 +44,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CupomIndisponivelException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public Map<String, String> handleCupomIndisponivel(CupomIndisponivelException ex) {
+        return Map.of("erro", ex.getMessage());
+    }
+
+    /** ERRCODE P0001 da funcao calcular_taxa_entrega (Aula 6). */
+    @ExceptionHandler(TaxaNaoRecalculavelException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleTaxaNaoRecalculavel(TaxaNaoRecalculavelException ex) {
         return Map.of("erro", ex.getMessage());
     }
 

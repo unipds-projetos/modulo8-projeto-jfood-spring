@@ -61,6 +61,10 @@ public class Pedido {
     @Column(name = "taxa_entrega", precision = 10, scale = 2)
     private BigDecimal taxaEntrega;
 
+    // Insumo da funcao calcular_taxa_entrega (Aula 6).
+    @Column(name = "distancia_km", precision = 6, scale = 2)
+    private BigDecimal distanciaKm;
+
     // Marcado pelo servico de despacho. Nulo = ainda na fila.
     @Column(name = "despachado_em")
     private OffsetDateTime despachadoEm;
@@ -139,6 +143,9 @@ public class Pedido {
 
     public BigDecimal getTaxaEntrega() { return taxaEntrega; }
     public void setTaxaEntrega(BigDecimal taxaEntrega) { this.taxaEntrega = taxaEntrega; }
+
+    public BigDecimal getDistanciaKm() { return distanciaKm; }
+    public void setDistanciaKm(BigDecimal distanciaKm) { this.distanciaKm = distanciaKm; }
 
     public OffsetDateTime getDespachadoEm() { return despachadoEm; }
     public void setDespachadoEm(OffsetDateTime despachadoEm) { this.despachadoEm = despachadoEm; }

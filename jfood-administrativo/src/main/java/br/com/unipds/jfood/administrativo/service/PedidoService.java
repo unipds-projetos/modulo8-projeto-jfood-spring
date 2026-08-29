@@ -5,8 +5,16 @@ import br.com.unipds.jfood.administrativo.domain.StatusPedido;
 import br.com.unipds.jfood.administrativo.repository.projection.ResumoPedido;
 import br.com.unipds.jfood.administrativo.repository.PedidoRepository;
 import br.com.unipds.jfood.administrativo.web.dto.PedidoResumoResponse;
+import br.com.unipds.jfood.administrativo.web.dto.AvaliacaoResponse;
+import br.com.unipds.jfood.administrativo.repository.AvaliacaoRepository;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
+    private final AvaliacaoRepository avaliacaoRepository;
 
-    public PedidoService(PedidoRepository pedidoRepository) {
+    public PedidoService(PedidoRepository pedidoRepository, AvaliacaoRepository avaliacaoRepository) {
         this.pedidoRepository = pedidoRepository;
+        this.avaliacaoRepository = avaliacaoRepository;
     }
 
     /**
@@ -107,6 +117,89 @@ public class PedidoService {
     @Transactional(readOnly = true)
     public List<ResumoPedido> listarResumoDoCliente(Long clienteId) {
         return pedidoRepository.listarResumoDoCliente(clienteId);
+    }
+
+    // =========================================================================
+    // Aula 6 — paginacao e funcao no banco
+    // =========================================================================
+
+    /** Historico paginado por OFFSET. O .map preserva os metadados da Page. */
+    @Transactional(readOnly = true)
+    public Page<PedidoResumoResponse> listarHistoricoPaginado(Long clienteId, Pageable pageable) {
+        return pedidoRepository.listarHistoricoPaginado(clienteId, pageable)
+                .map(this::paraResumo);
+    }
+
+    /** Historico paginado por KEYSET. Sem COUNT, sem OFFSET, custo constante. */
+    @Transactional(readOnly = true)
+    public List<PedidoResumoResponse> listarHistoricoKeyset(Long clienteId,
+                                                            OffsetDateTime ultimaData,
+                                                            Long ultimoId,
+                                                            int tamanho) {
+        return pedidoRepository.listarHistoricoKeyset(clienteId, ultimaData, ultimoId, tamanho)
+                .stream()
+                .map(this::paraResumo)
+                .toList();
+    }
+
+    /** Avaliacoes de um restaurante -- a outra tela que cresce sem limite. */
+    @Transactional(readOnly = true)
+    public Page<AvaliacaoResponse> listarAvaliacoes(Long restauranteId, Pageable pageable) {
+        return avaliacaoRepository.listarPorRestaurante(restauranteId, pageable)
+                .map(a -> new AvaliacaoResponse(
+                        a.getId(),
+                        a.getCliente().getNome(),
+                        a.getNota(),
+                        a.getComentario(),
+                        a.getCriadoEm()));
+    }
+
+    /**
+     * Chama a funcao PL/pgSQL da V14.
+     *
+     * O RAISE EXCEPTION ... USING ERRCODE do lado do banco so vale alguma coisa
+     * se alguem LER o codigo aqui. Sem esta traducao, os dois casos de erro da
+     * funcao viram o mesmo 500 generico -- e o cliente da API nao consegue
+     * distinguir "pedido nao existe" de "pedido ja entregue".
+     *
+     * Ler o SQLSTATE e nao a mensagem tambem e deliberado: a mensagem muda com o
+     * idioma do servidor e com o proximo refactor; o codigo, nao.
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calcularTaxaEntrega(Long pedidoId) {
+        try {
+            return pedidoRepository.calcularTaxaEntrega(pedidoId);
+        } catch (DataAccessException e) {
+            throw traduzirErroDaFuncao(e, pedidoId);
+        }
+    }
+
+    private RuntimeException traduzirErroDaFuncao(DataAccessException e, Long pedidoId) {
+        Throwable causa = e;
+        while (causa != null && !(causa instanceof SQLException)) {
+            causa = causa.getCause();
+        }
+        if (causa instanceof SQLException sql) {
+            return switch (sql.getSQLState()) {
+                case "P0002" -> new PedidoNaoEncontradoException(pedidoId);
+                case "P0001" -> new TaxaNaoRecalculavelException(mensagemLimpa(sql));
+                default -> e;
+            };
+        }
+        return e;
+    }
+
+    /**
+     * O PostgreSQL devolve a mensagem do RAISE junto com "ERROR: " e um bloco
+     * "Where:" com a linha da funcao. Util no log, ruido na resposta da API.
+     */
+    private String mensagemLimpa(SQLException sql) {
+        return sql.getMessage()
+                .lines()
+                .findFirst()
+                .orElse(sql.getMessage())
+                .replaceFirst("^ERROR:\\s*", "")
+                .strip();
     }
 
     private PedidoResumoResponse paraResumo(Pedido pedido) {
