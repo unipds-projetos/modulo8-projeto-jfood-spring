@@ -287,6 +287,235 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Aula 9 — Cache em Redis",
+      "item": [
+        {
+          "name": "Detalhe (dispare duas vezes: MISS e HIT)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/{{restauranteId}}",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "{{restauranteId}}"
+              ]
+            },
+            "description": "A linha 'MISS ->' no log so aparece na primeira. Confira a chave com: docker exec jfood-redis redis-cli KEYS '*'"
+          },
+          "response": []
+        },
+        {
+          "name": "Destaques — TTL fixo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/destaques",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "destaques"
+              ]
+            },
+            "description": "TTL de 60 s. Todas as replicas expiram no mesmo instante."
+          },
+          "response": []
+        },
+        {
+          "name": "Destaques — TTL com jitter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/destaques-com-jitter",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "destaques-com-jitter"
+              ]
+            },
+            "description": "60 s + ate 15 s aleatorios. Espalha os PRAZOS; nao reduz o herd de uma chave so."
+          },
+          "response": []
+        },
+        {
+          "name": "Destaques — com trava de recalculo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/destaques-com-trava",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "destaques-com-trava"
+              ]
+            },
+            "description": "SET NX single-flight: so a primeira requisicao vai ao banco."
+          },
+          "response": []
+        },
+        {
+          "name": "Experimento de stampede — sem jitter",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/experimentos/stampede/rodar?estrategia=SEM_JITTER&requisicoes=200",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experimentos",
+                "stampede",
+                "rodar"
+              ],
+              "query": [
+                {
+                  "key": "estrategia",
+                  "value": "SEM_JITTER"
+                },
+                {
+                  "key": "requisicoes",
+                  "value": "200"
+                }
+              ]
+            },
+            "description": "Medido: 200 de 200 requisicoes chegam ao MongoDB."
+          },
+          "response": []
+        },
+        {
+          "name": "Experimento de stampede — com jitter",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/experimentos/stampede/rodar?estrategia=COM_JITTER&requisicoes=200",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experimentos",
+                "stampede",
+                "rodar"
+              ],
+              "query": [
+                {
+                  "key": "estrategia",
+                  "value": "COM_JITTER"
+                },
+                {
+                  "key": "requisicoes",
+                  "value": "200"
+                }
+              ]
+            },
+            "description": "Medido: 200 de 200. Jitter nao resolve herd em uma chave -- e o resultado que contraria a intuicao."
+          },
+          "response": []
+        },
+        {
+          "name": "Experimento de stampede — com trava",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/experimentos/stampede/rodar?estrategia=COM_TRAVA&requisicoes=200",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experimentos",
+                "stampede",
+                "rodar"
+              ],
+              "query": [
+                {
+                  "key": "estrategia",
+                  "value": "COM_TRAVA"
+                },
+                {
+                  "key": "requisicoes",
+                  "value": "200"
+                }
+              ]
+            },
+            "description": "Medido: 1 de 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar visualizacao (write behind)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/{{restauranteId}}/visualizacoes",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "{{restauranteId}}",
+                "visualizacoes"
+              ]
+            },
+            "description": "Incrementa no Redis. O MongoDB so e tocado no flush."
+          },
+          "response": []
+        },
+        {
+          "name": "Consolidar os contadores",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/experimentos/write-behind/consolidar",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "experimentos",
+                "write-behind",
+                "consolidar"
+              ]
+            },
+            "description": "Um bulkOps com um update por restaurante. Em producao quem dispara e o @Scheduled de 5 min."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
