@@ -4,7 +4,13 @@ import br.com.unipds.jfood.administrativo.domain.Pedido;
 import br.com.unipds.jfood.administrativo.domain.StatusPedido;
 import br.com.unipds.jfood.administrativo.repository.projection.ResumoPedido;
 import java.util.List;
+import java.util.Optional;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -76,4 +82,44 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
             ORDER BY p.dataPedido DESC
            """)
     List<ResumoPedido> listarResumoDoCliente(@Param("clienteId") Long clienteId);
+
+    // =========================================================================
+    // Aula 5 — concorrencia
+    // =========================================================================
+
+    /**
+     * SELECT ... FOR UPDATE, expresso em JPA.
+     *
+     * O lock e adquirido NA LEITURA, antes de qualquer decisao -- e e isso que
+     * fecha a janela onde o duplo pagamento nasce.
+     *
+     * O timeout nao e opcional. Sem ele, uma transacao travada bloqueia todas as
+     * outras indefinidamente, e o sintoma que chega ao suporte e "o app parou".
+     * Com 3 s, quem espera demais recebe um erro e a fila anda.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))
+    @Query("SELECT p FROM Pedido p WHERE p.id = :id")
+    Optional<Pedido> buscarParaAtualizacao(@Param("id") Long id);
+
+    /**
+     * A fila de despacho.
+     *
+     * SKIP LOCKED PULA as linhas ja bloqueadas por outro processo em vez de
+     * esperar. Cada instancia do servico pega o proprio lote, sem contencao e sem
+     * deadlock -- e substitui um sistema de filas externo quando o banco ja e a
+     * fonte da verdade.
+     *
+     * Aqui NAO se usa @Lock: o FOR UPDATE ja esta explicito no SQL nativo, e
+     * anotar por cima so criaria conflito.
+     */
+    @Query(value = """
+                   SELECT * FROM pedido
+                    WHERE status = 'CONFIRMADO'
+                      AND despachado_em IS NULL
+                    ORDER BY data_pedido
+                    LIMIT :limite
+                      FOR UPDATE SKIP LOCKED
+                   """, nativeQuery = true)
+    List<Pedido> buscarLoteParaDespacho(@Param("limite") int limite);
 }
