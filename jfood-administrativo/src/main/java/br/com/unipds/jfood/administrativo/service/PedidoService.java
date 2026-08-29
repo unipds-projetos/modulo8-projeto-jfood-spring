@@ -1,6 +1,8 @@
 package br.com.unipds.jfood.administrativo.service;
 
 import br.com.unipds.jfood.administrativo.domain.Pedido;
+import br.com.unipds.jfood.administrativo.domain.StatusPedido;
+import br.com.unipds.jfood.administrativo.repository.projection.ResumoPedido;
 import br.com.unipds.jfood.administrativo.repository.PedidoRepository;
 import br.com.unipds.jfood.administrativo.web.dto.PedidoResumoResponse;
 import java.util.ArrayList;
@@ -83,6 +85,40 @@ public class PedidoService {
      * DELETE FROM item_pedido WHERE id = ? ao fechar a transacao -- sem nenhuma
      * chamada explicita a delete(). Os dois numeros estao em docs/aula03.md.
      */
+    /** Forma 1 — derived query. */
+    @Transactional(readOnly = true)
+    public List<PedidoResumoResponse> listarPorStatus(StatusPedido status) {
+        return pedidoRepository.findByStatusOrderByDataPedidoDesc(status)
+                .stream()
+                .map(this::paraResumo)
+                .toList();
+    }
+
+    /** Forma 2 — JPQL com JOIN pela categoria do restaurante. */
+    @Transactional(readOnly = true)
+    public List<PedidoResumoResponse> listarPorClienteECategoria(Long clienteId, String categoria) {
+        return pedidoRepository.buscarPorClienteECategoria(clienteId, categoria)
+                .stream()
+                .map(this::paraResumo)
+                .toList();
+    }
+
+    /** Forma 4 — projecao: tres colunas, sem instanciar a entidade. */
+    @Transactional(readOnly = true)
+    public List<ResumoPedido> listarResumoDoCliente(Long clienteId) {
+        return pedidoRepository.listarResumoDoCliente(clienteId);
+    }
+
+    private PedidoResumoResponse paraResumo(Pedido pedido) {
+        return new PedidoResumoResponse(
+                pedido.getId(),
+                pedido.getRestaurante().getNome(),
+                pedido.getEntregador() == null ? null : pedido.getEntregador().getNome(),
+                pedido.getStatus(),
+                pedido.getDataPedido(),
+                pedido.getValorTotal());
+    }
+
     @Transactional
     public void removerItem(Long pedidoId, Long itemPedidoId) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
