@@ -16,8 +16,16 @@
             "header": [],
             "url": {
               "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos",
-              "host": ["{{administrativo}}"],
-              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos"]
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteId}}",
+                "pedidos"
+              ]
             },
             "description": "Conte os 'Hibernate:' no log da aplicacao. Medido: 6 queries para 3 pedidos."
           },
@@ -30,8 +38,16 @@
             "header": [],
             "url": {
               "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos-otimizado",
-              "host": ["{{administrativo}}"],
-              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos-otimizado"]
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteId}}",
+                "pedidos-otimizado"
+              ]
             },
             "description": "Mesma resposta da requisicao anterior, em 1 query."
           },
@@ -44,9 +60,20 @@
             "header": [],
             "url": {
               "raw": "{{administrativo}}/api/v1/pedidos?status=A_CAMINHO",
-              "host": ["{{administrativo}}"],
-              "path": ["api", "v1", "pedidos"],
-              "query": [{ "key": "status", "value": "A_CAMINHO" }]
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "A_CAMINHO"
+                }
+              ]
             }
           },
           "response": []
@@ -58,9 +85,23 @@
             "header": [],
             "url": {
               "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos/por-categoria?categoria=Italiana",
-              "host": ["{{administrativo}}"],
-              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos", "por-categoria"],
-              "query": [{ "key": "categoria", "value": "Italiana" }]
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteId}}",
+                "pedidos",
+                "por-categoria"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "Italiana"
+                }
+              ]
             }
           },
           "response": []
@@ -72,9 +113,21 @@
             "header": [],
             "url": {
               "raw": "{{administrativo}}/api/v1/restaurantes/busca?termo=pizza",
-              "host": ["{{administrativo}}"],
-              "path": ["api", "v1", "restaurantes", "busca"],
-              "query": [{ "key": "termo", "value": "pizza" }]
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "busca"
+              ],
+              "query": [
+                {
+                  "key": "termo",
+                  "value": "pizza"
+                }
+              ]
             },
             "description": "to_tsvector/plainto_tsquery acha 'Pizzaria Bella Napoli' E 'Forno & Pizza' -- inclusive o que tem a palavra no meio, que o LIKE 'Pizza%' da Etapa 2 nao alcancava."
           },
@@ -87,8 +140,17 @@
             "header": [],
             "url": {
               "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos/resumo",
-              "host": ["{{administrativo}}"],
-              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos", "resumo"]
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteId}}",
+                "pedidos",
+                "resumo"
+              ]
             },
             "description": "Tres colunas no SELECT, tres campos no JSON. A entidade nem chega a ser instanciada."
           },
@@ -101,10 +163,183 @@
             "header": [],
             "url": {
               "raw": "{{administrativo}}/api/v1/pedidos/{{pedidoId}}/itens/1",
-              "host": ["{{administrativo}}"],
-              "path": ["api", "v1", "pedidos", "{{pedidoId}}", "itens", "1"]
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "{{pedidoId}}",
+                "itens",
+                "1"
+              ]
             },
             "description": "Confira no banco que a linha de item_pedido sumiu. Antes de orphanRemoval, ela ficava."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Aula 5 — Concorrencia",
+      "item": [
+        {
+          "name": "Confirmar pedido (lock pessimista)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/pedidos/{{pedidoId}}/confirmar",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "{{pedidoId}}",
+                "confirmar"
+              ]
+            },
+            "description": "Dispare seis vezes em paralelo: uma responde 200 e cinco respondem 409. Medido: exatamente 1 pagamento registrado."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar pedido — SELF-INVOCATION (errado)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/pedidos/{{pedidoId}}/confirmar-errado",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "{{pedidoId}}",
+                "confirmar-errado"
+              ]
+            },
+            "description": "Responde 204 e grava o pagamento SEM mudar o status. A inconsistencia silenciosa da secao 7 do gabarito. Nao use como modelo."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar pedido (lock otimista)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/pedidos/{{pedidoId}}/cancelar",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "{{pedidoId}}",
+                "cancelar"
+              ]
+            },
+            "description": "Tres chamadas em paralelo: 204 + dois 409 com o corpo do conflito otimista."
+          },
+          "response": []
+        },
+        {
+          "name": "Rodar a fila de despacho (SKIP LOCKED)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/despacho/rodar",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "despacho",
+                "rodar"
+              ]
+            },
+            "description": "Duas chamadas simultaneas devolvem lotes DISJUNTOS. Encha a fila antes com sql/aula05/prepara-fila-despacho.sql."
+          },
+          "response": []
+        },
+        {
+          "name": "Resgatar cupom",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/cupons/ALMOCO10/resgatar?clienteId={{clienteId}}",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cupons",
+                "ALMOCO10",
+                "resgatar"
+              ],
+              "query": [
+                {
+                  "key": "clienteId",
+                  "value": "{{clienteId}}"
+                }
+              ]
+            },
+            "description": "Contencao maxima: pessimista. Repetir com o mesmo cliente devolve 409."
+          },
+          "response": []
+        },
+        {
+          "name": "Programar recusa no gateway",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/gateway/recusar/{{pedidoId}}",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "recusar",
+                "{{pedidoId}}"
+              ]
+            },
+            "description": "Faz a proxima cobranca desse pedido ser recusada, para provocar o cenario do REQUIRES_NEW."
+          },
+          "response": []
+        },
+        {
+          "name": "Recalcular valor do pedido (retry com backoff)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/pedidos/{{pedidoId}}/recalcular",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "{{pedidoId}}",
+                "recalcular"
+              ]
+            },
+            "description": "O job de background: conflito otimista vira retry, nao 409."
           },
           "response": []
         }

@@ -42,10 +42,22 @@ public class AutoInvocacaoService {
         notificarCliente(pedidoId);
     }
 
-    /** @Transactional IGNORADO quando chamado pela linha acima. */
+    /**
+     * @Transactional IGNORADO quando chamado pela linha acima.
+     *
+     * Repare que este metodo usa findById, e nao o buscarParaAtualizacao com lock
+     * pessimista do ConfirmacaoPedidoService. Nao e descuido: com o lock, o
+     * Hibernate detecta que nao ha transacao e explode na primeira linha com
+     *
+     *   jakarta.persistence.TransactionRequiredException: No active transaction
+     *
+     * -- que e o caso FELIZ, porque quebra alto. Sem o lock, nada explode: a
+     * aplicacao responde 204 e grava metade do que deveria. E essa a versao que
+     * chega em producao.
+     */
     @Transactional
     public void confirmar(Long pedidoId) {
-        Pedido pedido = pedidoRepository.buscarParaAtualizacao(pedidoId)
+        Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new PedidoNaoEncontradoException(pedidoId));
 
         if (pedido.getStatus() != StatusPedido.CRIADO) {
