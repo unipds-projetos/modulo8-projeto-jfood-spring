@@ -25,4 +25,11 @@ public class PedidoController {
             @PathVariable Long clienteId) {
         return ResponseEntity.ok(pedidoService.listarPedidosDoCliente(clienteId));
     }
+
+    /** O mesmo historico com JOIN FETCH. Mesma resposta, uma query so. */
+    @GetMapping("/clientes/{clienteId}/pedidos-otimizado")
+    public ResponseEntity<List<PedidoResumoResponse>> listarPedidosDoClienteComFetch(
+            @PathVariable Long clienteId) {
+        return ResponseEntity.ok(pedidoService.listarPedidosDoClienteComFetch(clienteId));
+    }
 }

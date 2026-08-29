@@ -12,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -67,8 +66,11 @@ public class Pedido {
                fetch = FetchType.LAZY)
     private List<ItemPedido> itens = new ArrayList<>();
 
-    @OneToOne(mappedBy = "pedido", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Pagamento pagamento;
+    // NAO existe aqui um @OneToOne(mappedBy = "pedido") para Pagamento, e a
+    // ausencia e deliberada. O lado inverso de um @OneToOne NAO consegue ser lazy:
+    // para devolver null ou um proxy, o Hibernate precisa ir ao banco descobrir se
+    // a linha existe -- e vai, uma vez por pedido carregado. Era 1/3 do N+1 medido
+    // em docs/aula03.md. Quem precisa do pagamento usa o PagamentoRepository.
 
     /**
      * Atualiza OS DOIS LADOS do relacionamento. Adicionar so na lista nao grava
@@ -128,6 +130,4 @@ public class Pedido {
 
     public List<ItemPedido> getItens() { return itens; }
 
-    public Pagamento getPagamento() { return pagamento; }
-    public void setPagamento(Pagamento pagamento) { this.pagamento = pagamento; }
 }

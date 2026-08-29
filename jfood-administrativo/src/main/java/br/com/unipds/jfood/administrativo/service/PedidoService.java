@@ -45,4 +45,27 @@ public class PedidoService {
         }
         return resposta;
     }
+
+    /**
+     * A mesma tela, corrigida: UMA query.
+     *
+     * O mapeamento continua LAZY -- trocar para EAGER resolveria aqui e criaria o
+     * problema em toda outra consulta a Pedido. LAZY no mapeamento + JOIN FETCH na
+     * consulta que precisa e a combinacao certa.
+     */
+    @Transactional(readOnly = true)
+    public List<PedidoResumoResponse> listarPedidosDoClienteComFetch(Long clienteId) {
+        return pedidoRepository.buscarHistoricoComRestauranteEEntregador(clienteId)
+                .stream()
+                .map(pedido -> new PedidoResumoResponse(
+                        pedido.getId(),
+                        pedido.getRestaurante().getNome(),
+                        pedido.getEntregador() == null
+                                ? null
+                                : pedido.getEntregador().getNome(),
+                        pedido.getStatus(),
+                        pedido.getDataPedido(),
+                        pedido.getValorTotal()))
+                .toList();
+    }
 }
