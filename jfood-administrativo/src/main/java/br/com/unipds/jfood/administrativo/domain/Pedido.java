@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -59,6 +60,16 @@ public class Pedido {
 
     @Column(name = "taxa_entrega", precision = 10, scale = 2)
     private BigDecimal taxaEntrega;
+
+    // Marcado pelo servico de despacho. Nulo = ainda na fila.
+    @Column(name = "despachado_em")
+    private OffsetDateTime despachadoEm;
+
+    // Controle otimista: o Hibernate acrescenta "AND versao = ?" a todo UPDATE
+    // desta entidade e conta as linhas afetadas. Zero linhas = alguem passou na
+    // frente. Nunca altere este campo a mao.
+    @Version
+    private Long versao;
 
     // ItemPedido e entidade fraca: nasce e morre com o pedido.
     @OneToMany(mappedBy = "pedido",
@@ -128,6 +139,11 @@ public class Pedido {
 
     public BigDecimal getTaxaEntrega() { return taxaEntrega; }
     public void setTaxaEntrega(BigDecimal taxaEntrega) { this.taxaEntrega = taxaEntrega; }
+
+    public OffsetDateTime getDespachadoEm() { return despachadoEm; }
+    public void setDespachadoEm(OffsetDateTime despachadoEm) { this.despachadoEm = despachadoEm; }
+
+    public Long getVersao() { return versao; }
 
     public List<ItemPedido> getItens() { return itens; }
 
