@@ -1,0 +1,190 @@
+{
+  "info": {
+    "_postman_id": "e4a3c5d7-0000-4000-a000-000000000030",
+    "name": "JFood — Tracking",
+    "description": "Tracking de entregadores do JFood (Cassandra, porta 8083). Toda consulta aqui acessa uma unica particao.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Aula 10 — Cassandra",
+      "item": [
+        {
+          "name": "Enviar ping de GPS (202 Accepted)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{tracking}}/api/v1/tracking/pings",
+              "host": [
+                "{{tracking}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tracking",
+                "pings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entregadorId\": 7,\n  \"entregaId\": 9007,\n  \"latitude\": -23.5613,\n  \"longitude\": -46.6565,\n  \"velocidadeKmh\": 32.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Um ping vira TRES escritas -- uma por pergunta. 202 e nao 201: nao ha recurso a devolver."
+          },
+          "response": []
+        },
+        {
+          "name": "Onde esta o entregador agora?",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{tracking}}/api/v1/tracking/entregadores/7/posicao",
+              "host": [
+                "{{tracking}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tracking",
+                "entregadores",
+                "7",
+                "posicao"
+              ]
+            },
+            "description": "Pergunta 1. Uma linha, uma particao, sobrescrita a cada ping."
+          },
+          "response": []
+        },
+        {
+          "name": "Rota completa de uma entrega",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{tracking}}/api/v1/tracking/entregas/9007/rota",
+              "host": [
+                "{{tracking}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tracking",
+                "entregas",
+                "9007",
+                "rota"
+              ]
+            },
+            "description": "Pergunta 2. Ordem ASC: do inicio ao fim, para desenhar no mapa."
+          },
+          "response": []
+        },
+        {
+          "name": "Rota de um dia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{tracking}}/api/v1/tracking/entregadores/7/rota?dia=2026-08-29",
+              "host": [
+                "{{tracking}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tracking",
+                "entregadores",
+                "7",
+                "rota"
+              ],
+              "query": [
+                {
+                  "key": "dia",
+                  "value": "2026-08-29"
+                }
+              ]
+            },
+            "description": "Pergunta 3. Ordem DESC, sem ORDER BY -- o CLUSTERING ORDER ja gravou o disco ordenado."
+          },
+          "response": []
+        },
+        {
+          "name": "Rota dos ultimos 7 dias (o custo do bucketing)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{tracking}}/api/v1/tracking/entregadores/1000/rota-ultimos-dias?dias=7",
+              "host": [
+                "{{tracking}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tracking",
+                "entregadores",
+                "1000",
+                "rota-ultimos-dias"
+              ],
+              "query": [
+                {
+                  "key": "dias",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Sete leituras de particao montadas pela aplicacao. Medido: 1.487 pontos em 66 ms."
+          },
+          "response": []
+        },
+        {
+          "name": "Teste de carga: 100 mil pontos",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{tracking}}/api/v1/tracking/experimentos/carga?pontos=100000&entregadores=200&concorrencia=128",
+              "host": [
+                "{{tracking}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tracking",
+                "experimentos",
+                "carga"
+              ],
+              "query": [
+                {
+                  "key": "pontos",
+                  "value": "100000"
+                },
+                {
+                  "key": "entregadores",
+                  "value": "200"
+                },
+                {
+                  "key": "concorrencia",
+                  "value": "128"
+                }
+              ]
+            },
+            "description": "Medido em um no dentro do Docker: 17.266 pontos/s = 51.797 escritas/s, zero falhas."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
