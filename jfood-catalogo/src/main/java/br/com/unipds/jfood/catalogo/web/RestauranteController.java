@@ -37,7 +37,7 @@ public class RestauranteController {
     public ResponseEntity<Page<Restaurante>> listar(
             @PageableDefault(size = 20, sort = "notaMedia", direction = Direction.DESC)
             Pageable pageable) {
-        return ResponseEntity.ok(catalogoService.listar(pageable));
+        return ResponseEntity.ok(catalogoService.listar(pageable).paraPage());
     }
 
     @GetMapping("/por-categoria")
