@@ -405,3 +405,41 @@ erDiagram
     PEDIDO ||--o| PAGAMENTO : "E_QUITADO_POR"
     PEDIDO ||--o| AVALIACAO : "GERA"
 ```
+
+---
+
+## A decisão sobre `valor_total`: coluna ou recálculo?
+
+A pergunta que a Etapa 6 vai cobrar de volta. Os dois lados têm defesa:
+
+**A favor de recalcular** (`SUM(quantidade * preco_unitario)` sobre `item_pedido`): é a única forma
+que **não pode divergir**. O total é derivado dos itens por definição; guardá-lo é guardar duas
+versões da mesma verdade, e duas versões da mesma verdade acabam discordando — basta um item ser
+inserido por um caminho que esqueceu de atualizar a soma.
+
+**A favor da coluna:** o total é lido em toda listagem de histórico e em todo relatório de
+faturamento, e é escrito uma vez só. Recalcular obriga a agregar `item_pedido` em cada leitura;
+com um cliente de 300 pedidos, a tela de histórico vira 300 agregações.
+
+E há um argumento mais forte que o desempenho: `valor_total` é **o valor cobrado do cliente**. Ele
+inclui taxa de entrega e desconto de cupom, e passa por arredondamento. A soma dos itens é um
+insumo do total, não o total. Recalcular a partir dos itens produziria um número que, em alguns
+pedidos, **não é o que foi cobrado no cartão** — e isso é uma divergência contábil, não uma
+otimização.
+
+**Decisão desta implementação: coluna materializada**, mantida pela aplicação em uma transação
+única com a gravação dos itens.
+
+O risco assumido — divergir dos itens — é atacado na Etapa 6, onde as três implementações (coluna
+mantida pela aplicação, coluna mantida por trigger e cálculo sob demanda em uma view) são medidas
+e comparadas em frescor, custo de escrita e risco de divergência.
+
+---
+
+## Critério de pronto
+
+- Nenhuma coluna repete informação que pertence a outra tabela — com uma exceção declarada
+  (`avaliacao.restaurante_id`) e uma que não é repetição, e sim fato histórico
+  (`item_pedido.preco_unitario`).
+- Toda FK aponta para uma PK existente.
+- Para cada tabela criada, a anomalia que ela eliminou está nomeada na seção 5.
