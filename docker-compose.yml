@@ -51,7 +51,32 @@ services:
       timeout: 5s
       retries: 5
 
+  # Aula 10 — o tracking de entregadores
+  cassandra:
+    image: cassandra:5
+    container_name: jfood-cassandra
+    restart: always
+    ports:
+      - "9042:9042"
+    environment:
+      # Um no so, para a maquina local. Em producao seriam pelo menos tres, com
+      # NetworkTopologyStrategy e replication_factor 3.
+      CASSANDRA_CLUSTER_NAME: jfood-cluster
+      # A JVM do Cassandra pede memoria com folga; sem isto ele tenta reservar
+      # 1/4 da RAM da maquina.
+      MAX_HEAP_SIZE: 1G
+      HEAP_NEWSIZE: 256M
+    volumes:
+      - jfood_cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' > /dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+
 volumes:
   jfood_postgres_data:
   jfood_mongo_data:
   jfood_redis_data:
+  jfood_cassandra_data:
