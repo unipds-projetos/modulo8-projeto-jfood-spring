@@ -73,10 +73,15 @@ public class PedidoService {
      * Remove um item do pedido tirando-o da COLECAO -- sem chamar delete() em
      * lugar nenhum.
      *
-     * Rode isto ANTES de declarar orphanRemoval e confira no banco: a linha de
-     * item_pedido continua la. Remover da lista em memoria nao remove do banco;
-     * o CascadeType.REMOVE tambem nao ajuda, porque ele age quando o PAI e
-     * deletado, e o pai aqui esta vivo.
+     * Rodado ANTES de declarar orphanRemoval, isto deixava a linha de item_pedido
+     * no banco: remover da lista em memoria nao remove do banco, e o
+     * CascadeType.REMOVE tambem nao ajuda -- ele age quando o PAI e deletado, e o
+     * pai aqui esta vivo. Pior: o valor_total ja tinha sido recalculado, e o
+     * pedido passava a valer menos do que a soma dos seus proprios itens.
+     *
+     * Com orphanRemoval = true declarado em Pedido.itens, o Hibernate emite o
+     * DELETE FROM item_pedido WHERE id = ? ao fechar a transacao -- sem nenhuma
+     * chamada explicita a delete(). Os dois numeros estao em docs/aula03.md.
      */
     @Transactional
     public void removerItem(Long pedidoId, Long itemPedidoId) {

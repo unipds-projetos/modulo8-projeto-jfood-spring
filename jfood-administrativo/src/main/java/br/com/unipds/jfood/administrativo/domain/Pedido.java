@@ -63,6 +63,7 @@ public class Pedido {
     // ItemPedido e entidade fraca: nasce e morre com o pedido.
     @OneToMany(mappedBy = "pedido",
                cascade = CascadeType.ALL,
+               orphanRemoval = true,
                fetch = FetchType.LAZY)
     private List<ItemPedido> itens = new ArrayList<>();
 
