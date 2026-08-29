@@ -18,5 +18,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Aula 8 — o catalogo de restaurantes e cardapios
+  mongodb:
+    image: mongo:8
+    container_name: jfood-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: adminpassword
+    ports:
+      - "27017:27017"
+    volumes:
+      - jfood_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   jfood_postgres_data:
+  jfood_mongo_data:
