@@ -32,6 +32,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+
         <!-- Desde o Flyway 10 o suporte a cada banco vive em um modulo proprio:
              o core sozinho reclama de dialeto nao suportado. -->
         <dependency>
