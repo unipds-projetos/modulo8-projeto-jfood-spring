@@ -1,0 +1,102 @@
+{
+  "info": {
+    "_postman_id": "f5b4d6e8-0000-4000-a000-000000000040",
+    "name": "JFood — Recomendacoes",
+    "description": "Recomendacao cruzada por avaliacoes do JFood (Neo4J, porta 8084). Rode antes o scripts/sincronizar-grafo.py.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Aula 11 — Neo4J",
+      "item": [
+        {
+          "name": "Recomendacoes por contagem de vizinhos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{recomendacoes}}/api/v1/recomendacoes/clientes/10?notaMinima=4&limite=5",
+              "host": [
+                "{{recomendacoes}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recomendacoes",
+                "clientes",
+                "10"
+              ],
+              "query": [
+                {
+                  "key": "notaMinima",
+                  "value": "4"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Filtragem colaborativa em tres saltos. 204 quando o cliente nao tem vizinhanca."
+          },
+          "response": []
+        },
+        {
+          "name": "Recomendacoes por nota ponderada",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{recomendacoes}}/api/v1/recomendacoes/clientes/10/ponderado?notaMinima=4&limite=5",
+              "host": [
+                "{{recomendacoes}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recomendacoes",
+                "clientes",
+                "10",
+                "ponderado"
+              ],
+              "query": [
+                {
+                  "key": "notaMinima",
+                  "value": "4"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Soma (nota-3)*(nota-3) e desempata por categoria em comum. O Verde & Cia sobe uma posicao em relacao a contagem."
+          },
+          "response": []
+        },
+        {
+          "name": "Deteccao de fraude: contas vinculadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{recomendacoes}}/api/v1/recomendacoes/fraude/contas-vinculadas",
+              "host": [
+                "{{recomendacoes}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recomendacoes",
+                "fraude",
+                "contas-vinculadas"
+              ]
+            },
+            "description": "Contas diferentes que compartilham cartao ou dispositivo. Cartao e dispositivo sao NOS, e nao propriedades -- e o que torna a pergunta uma travessia."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
