@@ -344,6 +344,178 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Aula 6 — Views, funcoes, triggers e paginacao",
+      "item": [
+        {
+          "name": "Faturamento por restaurante (materialized view)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/relatorios/faturamento",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "relatorios",
+                "faturamento"
+              ]
+            },
+            "description": "Le o snapshot: 0,026 ms contra 167 ms da query original com 200 mil pedidos. A coluna atualizadoEm diz quao velho e o dado."
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar o snapshot (REFRESH CONCURRENTLY)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/relatorios/faturamento/atualizar",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "relatorios",
+                "faturamento",
+                "atualizar"
+              ]
+            },
+            "description": "Em producao quem dispara e o @Scheduled de 10 em 10 minutos."
+          },
+          "response": []
+        },
+        {
+          "name": "Taxa de entrega (funcao PL/pgSQL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/pedidos/18/taxa-entrega",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "18",
+                "taxa-entrega"
+              ]
+            },
+            "description": "Faixa progressiva calculada no banco. Pedido ENTREGUE devolve 409; pedido inexistente, 404 -- traduzidos do ERRCODE."
+          },
+          "response": []
+        },
+        {
+          "name": "Historico paginado por OFFSET",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos/pagina?page=0&size=20",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteId}}",
+                "pedidos",
+                "pagina"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Com volume: pagina 1 em 0,082 ms, pagina 5.000 em 17 ms. Toda Page paga ainda o COUNT."
+          },
+          "response": []
+        },
+        {
+          "name": "Historico paginado por KEYSET",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos/keyset?ultimaData=2099-01-01T00:00:00Z&ultimoId=9223372036854775807&tamanho=20",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteId}}",
+                "pedidos",
+                "keyset"
+              ],
+              "query": [
+                {
+                  "key": "ultimaData",
+                  "value": "2099-01-01T00:00:00Z"
+                },
+                {
+                  "key": "ultimoId",
+                  "value": "9223372036854775807"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Custo constante: 0,055 ms na pagina 1 e 0,113 ms na 5.000. Nas proximas chamadas, use a data e o id do ULTIMO item da pagina anterior."
+          },
+          "response": []
+        },
+        {
+          "name": "Avaliacoes de um restaurante, paginadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/restaurantes/1/avaliacoes?page=0&size=20",
+              "host": [
+                "{{administrativo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "1",
+                "avaliacoes"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "A outra tela do JFood que cresce sem limite."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
