@@ -1,0 +1,292 @@
+{
+  "info": {
+    "_postman_id": "d3f2b4c6-0000-4000-a000-000000000020",
+    "name": "JFood — Catalogo",
+    "description": "Catalogo de restaurantes e cardapios do JFood (MongoDB na porta 8082; o cache em Redis entra na Aula 9). Defina {{restauranteId}} no environment com um _id vindo da listagem.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Aula 8 — MongoDB",
+      "item": [
+        {
+          "name": "Listar restaurantes (paginado, melhores avaliados)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes?page=0&size=20",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "A tela inicial: @PageableDefault ordena por notaMedia DESC. A resposta usa PagedModel, e nao PageImpl."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por categoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/por-categoria?categoria=Italiana&page=0&size=20",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "por-categoria"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "Italiana"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Restaurantes com item de uma tag (notacao de ponto)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/com-item-tag?tag=vegano",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "com-item-tag"
+              ],
+              "query": [
+                {
+                  "key": "tag",
+                  "value": "vegano"
+                }
+              ]
+            },
+            "description": "cardapio.itens.tags atravessa dois niveis de array sem $unwind. Medido: 4 restaurantes."
+          },
+          "response": []
+        },
+        {
+          "name": "Detalhe do restaurante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/{{restauranteId}}",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "{{restauranteId}}"
+              ]
+            },
+            "description": "A tela inteira -- nome, foto, horario, taxa e o cardapio com opcionais -- em UMA leitura de UM documento."
+          },
+          "response": []
+        },
+        {
+          "name": "Busca global por item (Subset Pattern)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/itens/busca?termo=pizza",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "itens",
+                "busca"
+              ],
+              "query": [
+                {
+                  "key": "termo",
+                  "value": "pizza"
+                }
+              ]
+            },
+            "description": "Cada resultado ja traz nome, nota e taxa do restaurante, duplicados dentro do item. Uma consulta, uma colecao."
+          },
+          "response": []
+        },
+        {
+          "name": "Busca de itens por tag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/itens/por-tag?tag=vegano",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "itens",
+                "por-tag"
+              ],
+              "query": [
+                {
+                  "key": "tag",
+                  "value": "vegano"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Criar restaurante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cantinho Mineiro\",\n  \"categoria\": \"Brasileira\",\n  \"fotoUrl\": \"https://cdn.jfood.example/rest/cantinho.jpg\",\n  \"notaMedia\": 4.3,\n  \"taxaEntrega\": 8.5,\n  \"aberto\": true,\n  \"abreAs\": \"11:00\",\n  \"fechaAs\": \"15:00\",\n  \"visualizacoes\": 0,\n  \"cardapio\": [\n    {\n      \"nome\": \"Pratos\",\n      \"ordem\": 1,\n      \"itens\": [\n        {\n          \"nome\": \"Tutu à Mineira\",\n          \"descricao\": \"Com torresmo e couve\",\n          \"preco\": 44.9,\n          \"fotoUrl\": \"https://cdn.jfood.example/item/tutu.jpg\",\n          \"tags\": [],\n          \"disponivel\": true,\n          \"opcionais\": []\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar restaurante (propaga o subset)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/{{restauranteId}}",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "{{restauranteId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cantina do Ze - Trattoria\",\n  \"categoria\": \"Italiana\",\n  \"fotoUrl\": \"https://cdn.jfood.example/rest/cantina-nova.jpg\",\n  \"notaMedia\": 4.7,\n  \"taxaEntrega\": 7.90,\n  \"aberto\": true,\n  \"abreAs\": \"18:00\",\n  \"fechaAs\": \"23:30\",\n  \"visualizacoes\": 0,\n  \"cardapio\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Troque o nome e confira no log: 'Subset propagado para N itens'. A busca por item passa a mostrar o nome novo."
+          },
+          "response": []
+        },
+        {
+          "name": "Excluir restaurante",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/restaurantes/{{restauranteId}}",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "restaurantes",
+                "{{restauranteId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Relatorio: preco por categoria (aggregation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{catalogo}}/api/v1/admin/relatorios/preco-por-categoria",
+              "host": [
+                "{{catalogo}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "relatorios",
+                "preco-por-categoria"
+              ]
+            },
+            "description": "$match antes do $unwind: filtrar depois seria descartar documentos fabricados pelo proprio unwind."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
