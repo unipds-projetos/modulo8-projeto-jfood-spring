@@ -79,6 +79,20 @@ que faz muita gente desistir do `CONCURRENTLY` e voltar para o `REFRESH` que tra
 **A coluna `atualizado_em`** existe para que o consumidor saiba **quão velho** é o dado. Sem ela, um
 refresh travado passa despercebido e o painel exibe números antigos como se fossem de agora.
 
+> **Uma armadilha que este gabarito pisou.** A projeção sobre a materialized view declarava
+> `OffsetDateTime getAtualizadoEm()`. A consulta é **nativa**, e o Hibernate devolve o `timestamptz`
+> como `java.time.Instant` — e **projeção por interface não converte tipos**, só repassa o que veio.
+> Resultado: a consulta roda, a lista volta preenchida, e a serialização estoura só na saída:
+>
+> ```
+> HttpMessageNotWritableException: Could not write JSON: Cannot project java.time.Instant
+> to java.time.OffsetDateTime; Target type is not an interface and no matching Converter found
+> ```
+>
+> Um HTTP 500 que o Spring MVC registra como **WARN**, sem stack trace no log de erro. Nas entidades
+> JPA (`@Column`) a conversão acontece; em projeção sobre query nativa, não. O tipo declarado tem de
+> ser o que o driver devolve.
+
 ## 3. A função PL/pgSQL de taxa de entrega
 
 `V13` acrescenta `pedido.distancia_km` (o insumo que faltava); `V14` cria a função com faixa
