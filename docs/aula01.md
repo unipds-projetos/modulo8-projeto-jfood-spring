@@ -147,3 +147,261 @@ do pedido. É transitiva: `pedido_id → restaurante_nome → restaurante_catego
 | 1FN | Não dava para consultar nem indexar um telefone ou um item — só varrer strings |
 | 2FN | O nome do cliente era regravado em cada item do pedido: **anomalia de atualização** (corrigir o nome em um item e não nos outros) |
 | 3FN | Uma categoria nova só podia existir se houvesse um restaurante dela: **anomalia de inserção**. E apagar o último restaurante italiano apagava a existência da categoria: **anomalia de exclusão** |
+
+## 6. Esquema lógico final
+
+Cada bloco vira um `CREATE TABLE` na Etapa 2; cada FK vira uma constraint `FOREIGN KEY`.
+
+```
+usuario (
+    id          BIGSERIAL     PRIMARY KEY,
+    nome        VARCHAR(100)  NOT NULL,
+    email       VARCHAR(150)  NOT NULL UNIQUE,
+    senha_hash  VARCHAR(60)   NOT NULL,
+    telefone    VARCHAR(20),
+    criado_em   TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+)
+
+cliente (
+    usuario_id  BIGINT       PRIMARY KEY REFERENCES usuario(id),
+    cpf         VARCHAR(11)  NOT NULL UNIQUE
+)
+
+entregador (
+    usuario_id    BIGINT       PRIMARY KEY REFERENCES usuario(id),
+    cnh           VARCHAR(11)  NOT NULL UNIQUE,
+    tipo_veiculo  VARCHAR(20)  NOT NULL CHECK (tipo_veiculo IN ('MOTO','BICICLETA','CARRO','A_PE')),
+    disponivel    BOOLEAN      NOT NULL DEFAULT TRUE
+)
+
+dono_restaurante (
+    usuario_id  BIGINT       PRIMARY KEY REFERENCES usuario(id),
+    cnpj        VARCHAR(14)  NOT NULL UNIQUE
+)
+
+endereco_entrega (
+    id           BIGSERIAL     PRIMARY KEY,
+    cliente_id   BIGINT        NOT NULL REFERENCES cliente(usuario_id),
+    apelido      VARCHAR(30)   NOT NULL,
+    cep          VARCHAR(8)    NOT NULL,
+    logradouro   VARCHAR(150)  NOT NULL,
+    numero       VARCHAR(10)   NOT NULL,
+    complemento  VARCHAR(60),
+    bairro       VARCHAR(100)  NOT NULL,
+    cidade       VARCHAR(100)  NOT NULL,
+    uf           CHAR(2)       NOT NULL,
+    UNIQUE (cliente_id, apelido)
+)
+
+categoria_restaurante (
+    id    SERIAL       PRIMARY KEY,
+    nome  VARCHAR(50)  NOT NULL UNIQUE
+)
+
+restaurante (
+    id            BIGSERIAL     PRIMARY KEY,
+    nome          VARCHAR(120)  NOT NULL,
+    categoria_id  INT           NOT NULL REFERENCES categoria_restaurante(id),
+    dono_id       BIGINT        NOT NULL REFERENCES dono_restaurante(usuario_id),
+    cep           VARCHAR(8)    NOT NULL,
+    criado_em     TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+)
+
+item_cardapio (
+    id              BIGSERIAL      PRIMARY KEY,
+    restaurante_id  BIGINT         NOT NULL REFERENCES restaurante(id),
+    nome            VARCHAR(120)   NOT NULL,
+    descricao       VARCHAR(255),
+    preco           NUMERIC(10,2)  NOT NULL CHECK (preco >= 0),
+    disponivel      BOOLEAN        NOT NULL DEFAULT TRUE
+)
+
+pedido (
+    id                   BIGSERIAL      PRIMARY KEY,
+    cliente_id           BIGINT         NOT NULL REFERENCES cliente(usuario_id),
+    restaurante_id       BIGINT         NOT NULL REFERENCES restaurante(id),
+    endereco_entrega_id  BIGINT         NOT NULL REFERENCES endereco_entrega(id),
+    entregador_id        BIGINT         REFERENCES entregador(usuario_id),
+    status               VARCHAR(20)    NOT NULL DEFAULT 'CRIADO'
+                                        CHECK (status IN ('CRIADO','CONFIRMADO','EM_PREPARO',
+                                                          'A_CAMINHO','ENTREGUE','CANCELADO')),
+    data_pedido          TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+    valor_total          NUMERIC(10,2)  NOT NULL DEFAULT 0
+)
+
+item_pedido (
+    id                BIGSERIAL      PRIMARY KEY,
+    pedido_id         BIGINT         NOT NULL REFERENCES pedido(id),
+    item_cardapio_id  BIGINT         NOT NULL REFERENCES item_cardapio(id),
+    quantidade        INT            NOT NULL CHECK (quantidade > 0),
+    preco_unitario    NUMERIC(10,2)  NOT NULL CHECK (preco_unitario >= 0),
+    UNIQUE (pedido_id, item_cardapio_id)
+)
+
+pagamento (
+    id         BIGSERIAL      PRIMARY KEY,
+    pedido_id  BIGINT         NOT NULL UNIQUE REFERENCES pedido(id),
+    metodo     VARCHAR(20)    NOT NULL CHECK (metodo IN ('CARTAO_CREDITO','CARTAO_DEBITO','PIX','DINHEIRO')),
+    valor      NUMERIC(10,2)  NOT NULL CHECK (valor >= 0),
+    status     VARCHAR(20)    NOT NULL CHECK (status IN ('PENDENTE','APROVADO','RECUSADO','ESTORNADO')),
+    pago_em    TIMESTAMPTZ
+)
+
+avaliacao (
+    id              BIGSERIAL     PRIMARY KEY,
+    pedido_id       BIGINT        NOT NULL UNIQUE REFERENCES pedido(id),
+    cliente_id      BIGINT        NOT NULL REFERENCES cliente(usuario_id),
+    restaurante_id  BIGINT        NOT NULL REFERENCES restaurante(id),
+    nota            SMALLINT      NOT NULL CHECK (nota BETWEEN 1 AND 5),
+    comentario      VARCHAR(500),
+    criado_em       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+)
+```
+
+Decisões que valem comentário:
+
+- **`NUMERIC(10,2)` em todo dinheiro.** Nunca `FLOAT`: `0,1 + 0,2` em ponto flutuante binário não dá
+  `0,3`, e um centavo perdido por pedido vira relatório que não fecha.
+- **`TIMESTAMPTZ`, não `TIMESTAMP`.** Um app de delivery nacional tem clientes em fusos diferentes;
+  o `TZ` guarda o instante, não a leitura do relógio de quem gravou.
+- **A PK das especializações é a PK do usuário.** `cliente.usuario_id` é PK **e** FK ao mesmo tempo:
+  é isso que impede um usuário de virar dois clientes.
+- **`pedido.entregador_id` é nulo** enquanto o pedido não foi despachado. É o único nulo do esquema
+  que significa alguma coisa — "ainda não aconteceu" —, e não falta de informação.
+- **`avaliacao.restaurante_id` é derivável** de `pedido.restaurante_id`. Está aqui de propósito, para
+  que a listagem de avaliações de um restaurante (Etapa 6) e o grafo de recomendação (Etapa 11) não
+  precisem do JOIN com `pedido` a cada leitura. É a primeira desnormalização consciente do projeto —
+  e o `UNIQUE (pedido_id)` mantém a coerência de que só há uma avaliação por pedido.
+
+> `pedido.observacao` e `pedido.taxa_entrega` **não estão aqui**: eles chegam por `ALTER TABLE` na
+> Etapa 2, que é justamente o exercício de mexer no esquema depois que ele já existe.
+
+### Diagrama entidade-relacionamento
+
+O arquivo é [`docs/modelo/jfood-mer.mmd`](modelo/jfood-mer.mmd).
+```mermaid
+erDiagram
+    direction LR
+
+    USUARIO {
+        bigint id PK
+        string nome
+        string email UK
+        string senha_hash
+        string telefone
+        timestamptz criado_em
+    }
+
+    CLIENTE {
+        bigint usuario_id PK "FK -> usuario.id"
+        string cpf UK
+    }
+
+    ENTREGADOR {
+        bigint usuario_id PK "FK -> usuario.id"
+        string cnh UK
+        string tipo_veiculo
+        boolean disponivel
+    }
+
+    DONO_RESTAURANTE {
+        bigint usuario_id PK "FK -> usuario.id"
+        string cnpj UK
+    }
+
+    ENDERECO_ENTREGA {
+        bigint id PK
+        bigint cliente_id FK
+        string apelido
+        string cep
+        string logradouro
+        string numero
+        string complemento
+        string bairro
+        string cidade
+        string uf
+    }
+
+    CATEGORIA_RESTAURANTE {
+        int id PK
+        string nome UK
+    }
+
+    RESTAURANTE {
+        bigint id PK
+        string nome
+        int categoria_id FK
+        bigint dono_id FK
+        string cep
+        timestamptz criado_em
+    }
+
+    ITEM_CARDAPIO {
+        bigint id PK
+        bigint restaurante_id FK
+        string nome
+        string descricao
+        decimal preco
+        boolean disponivel
+    }
+
+    PEDIDO {
+        bigint id PK
+        bigint cliente_id FK
+        bigint restaurante_id FK
+        bigint endereco_entrega_id FK
+        bigint entregador_id FK "nulo ate o despacho"
+        string status
+        timestamptz data_pedido
+        decimal valor_total
+    }
+
+    ITEM_PEDIDO {
+        bigint id PK
+        bigint pedido_id FK
+        bigint item_cardapio_id FK
+        int quantidade
+        decimal preco_unitario "preco no momento da compra"
+    }
+
+    PAGAMENTO {
+        bigint id PK
+        bigint pedido_id FK,UK
+        string metodo
+        decimal valor
+        string status
+        timestamptz pago_em
+    }
+
+    AVALIACAO {
+        bigint id PK
+        bigint pedido_id FK,UK
+        bigint cliente_id FK
+        bigint restaurante_id FK
+        int nota
+        string comentario
+        timestamptz criado_em
+    }
+
+    USUARIO ||--o| CLIENTE : "E_UM"
+    USUARIO ||--o| ENTREGADOR : "E_UM"
+    USUARIO ||--o| DONO_RESTAURANTE : "E_UM"
+
+    CLIENTE ||--o{ ENDERECO_ENTREGA : "MORA_EM"
+    CLIENTE ||--o{ PEDIDO : "FAZ"
+    CLIENTE ||--o{ AVALIACAO : "AVALIA"
+
+    DONO_RESTAURANTE ||--o{ RESTAURANTE : "E_DONO_DE"
+    CATEGORIA_RESTAURANTE ||--o{ RESTAURANTE : "CLASSIFICA"
+    RESTAURANTE ||--o{ ITEM_CARDAPIO : "OFERECE"
+    RESTAURANTE ||--o{ PEDIDO : "RECEBE"
+    RESTAURANTE ||--o{ AVALIACAO : "E_AVALIADO_EM"
+
+    ENDERECO_ENTREGA ||--o{ PEDIDO : "E_DESTINO_DE"
+    ENTREGADOR ||--o{ PEDIDO : "ENTREGA"
+
+    PEDIDO ||--|{ ITEM_PEDIDO : "CONTEM"
+    ITEM_CARDAPIO ||--o{ ITEM_PEDIDO : "E_PEDIDO_EM"
+    PEDIDO ||--o| PAGAMENTO : "E_QUITADO_POR"
+    PEDIDO ||--o| AVALIACAO : "GERA"
+```

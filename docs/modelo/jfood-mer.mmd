@@ -1,0 +1,124 @@
+erDiagram
+    direction LR
+
+    USUARIO {
+        bigint id PK
+        string nome
+        string email UK
+        string senha_hash
+        string telefone
+        timestamptz criado_em
+    }
+
+    CLIENTE {
+        bigint usuario_id PK "FK -> usuario.id"
+        string cpf UK
+    }
+
+    ENTREGADOR {
+        bigint usuario_id PK "FK -> usuario.id"
+        string cnh UK
+        string tipo_veiculo
+        boolean disponivel
+    }
+
+    DONO_RESTAURANTE {
+        bigint usuario_id PK "FK -> usuario.id"
+        string cnpj UK
+    }
+
+    ENDERECO_ENTREGA {
+        bigint id PK
+        bigint cliente_id FK
+        string apelido
+        string cep
+        string logradouro
+        string numero
+        string complemento
+        string bairro
+        string cidade
+        string uf
+    }
+
+    CATEGORIA_RESTAURANTE {
+        int id PK
+        string nome UK
+    }
+
+    RESTAURANTE {
+        bigint id PK
+        string nome
+        int categoria_id FK
+        bigint dono_id FK
+        string cep
+        timestamptz criado_em
+    }
+
+    ITEM_CARDAPIO {
+        bigint id PK
+        bigint restaurante_id FK
+        string nome
+        string descricao
+        decimal preco
+        boolean disponivel
+    }
+
+    PEDIDO {
+        bigint id PK
+        bigint cliente_id FK
+        bigint restaurante_id FK
+        bigint endereco_entrega_id FK
+        bigint entregador_id FK "nulo ate o despacho"
+        string status
+        timestamptz data_pedido
+        decimal valor_total
+    }
+
+    ITEM_PEDIDO {
+        bigint id PK
+        bigint pedido_id FK
+        bigint item_cardapio_id FK
+        int quantidade
+        decimal preco_unitario "preco no momento da compra"
+    }
+
+    PAGAMENTO {
+        bigint id PK
+        bigint pedido_id FK,UK
+        string metodo
+        decimal valor
+        string status
+        timestamptz pago_em
+    }
+
+    AVALIACAO {
+        bigint id PK
+        bigint pedido_id FK,UK
+        bigint cliente_id FK
+        bigint restaurante_id FK
+        int nota
+        string comentario
+        timestamptz criado_em
+    }
+
+    USUARIO ||--o| CLIENTE : "E_UM"
+    USUARIO ||--o| ENTREGADOR : "E_UM"
+    USUARIO ||--o| DONO_RESTAURANTE : "E_UM"
+
+    CLIENTE ||--o{ ENDERECO_ENTREGA : "MORA_EM"
+    CLIENTE ||--o{ PEDIDO : "FAZ"
+    CLIENTE ||--o{ AVALIACAO : "AVALIA"
+
+    DONO_RESTAURANTE ||--o{ RESTAURANTE : "E_DONO_DE"
+    CATEGORIA_RESTAURANTE ||--o{ RESTAURANTE : "CLASSIFICA"
+    RESTAURANTE ||--o{ ITEM_CARDAPIO : "OFERECE"
+    RESTAURANTE ||--o{ PEDIDO : "RECEBE"
+    RESTAURANTE ||--o{ AVALIACAO : "E_AVALIADO_EM"
+
+    ENDERECO_ENTREGA ||--o{ PEDIDO : "E_DESTINO_DE"
+    ENTREGADOR ||--o{ PEDIDO : "ENTREGA"
+
+    PEDIDO ||--|{ ITEM_PEDIDO : "CONTEM"
+    ITEM_CARDAPIO ||--o{ ITEM_PEDIDO : "E_PEDIDO_EM"
+    PEDIDO ||--o| PAGAMENTO : "E_QUITADO_POR"
+    PEDIDO ||--o| AVALIACAO : "GERA"
