@@ -100,7 +100,7 @@ decisão explícita, versionada junto com o código.
 ### Três armadilhas que este gabarito encontrou
 
 **(a) `spring.data.mongodb.uri` está deprecada no Spring Boot 4.** A propriedade agora é
-`spring.mongodb.uri`. Com a antiga — que é a da apostila — a aplicação **sobe normalmente** e só
+`spring.mongodb.uri`. Com a antiga, `spring.data.mongodb.uri`, a aplicação **sobe normalmente** e só
 quebra na primeira operação:
 
 ```
