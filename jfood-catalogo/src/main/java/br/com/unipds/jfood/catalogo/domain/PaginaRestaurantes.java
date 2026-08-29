@@ -9,15 +9,18 @@ import org.springframework.data.domain.Sort;
 /**
  * O que vai para o CACHE no lugar de um Page.
  *
- * Cachear PageImpl direto nao funciona -- e a razao esta em docs/aula09.md:
- * ele nao tem construtor que o Jackson consiga usar, e o Pageable que os
- * construtores reais pedem tambem nao e desserializavel. O mixin da apostila
- * resolve isso no Jackson 2; no Jackson 3 do Spring Boot 4, nao.
+ * Cachear PageImpl direto NAO funciona sem ajuda: ele nao tem construtor que o
+ * Jackson consiga usar. O mixin da apostila resolve -- e resolve tambem no
+ * Jackson 3 do Spring Boot 4, o que foi verificado. A tecnica correta e uma
+ * INTERFACE anotada com @JsonDeserialize(as = CustomPageImpl.class), onde
+ * CustomPageImpl e uma subclasse real de PageImpl com um @JsonCreator. E o que
+ * o projeto javify-catalogo-spring usa.
  *
- * A saida e melhor do que o remendo: guardar um record proprio. Ele e estavel,
- * serializa e desserializa sem truque, e nao acopla o conteudo do cache a uma
- * classe interna do Spring -- que e exatamente a fragilidade contra a qual o
- * VIA_DTO existe do lado do HTTP.
+ * Aqui optamos pelo record proprio assim mesmo -- pelo argumento que a propria
+ * apostila levanta na secao 9.7: nao se deveria cachear classes internas de
+ * framework. Um PageImpl gravado no Redis hoje e uma incompatibilidade esperando
+ * o proximo upgrade do Spring, com o agravante de que os dados ja estao la. E a
+ * mesma razao do VIA_DTO, do lado do HTTP.
  */
 public record PaginaRestaurantes(
         List<Restaurante> conteudo,

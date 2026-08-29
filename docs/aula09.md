@@ -116,23 +116,50 @@ class br.com.unipds.jfood.catalogo.domain.Restaurante
 — **só no HIT, nunca no MISS**. Ou seja: passa no primeiro teste que qualquer um escreveria. A
 solução é construir o mapper em um método privado, usado pelos dois beans.
 
-**(b) O `PageImplMixIn` da apostila não resolve no Jackson 3.** `PageImpl` não tem construtor que o
-Jackson consiga usar:
+**(b) O `PageImpl` não desserializa sozinho** — e o mixin da apostila resolve, inclusive no
+Jackson 3.
 
 ```
 Cannot construct instance of `org.springframework.data.domain.PageImpl`
 (no Creators, like default constructor, exist)
 ```
 
-E um mixin só é aplicado quando a assinatura do construtor **casa** com um construtor real da classe
-alvo — os de `PageImpl` recebem um `Pageable`, que por sua vez também não é desserializável. Em vez
-de empilhar remendos, o cache guarda um record próprio,
-[`PaginaRestaurantes`](../jfood-catalogo/src/main/java/br/com/unipds/jfood/catalogo/domain/PaginaRestaurantes.java),
-e o controller o converte para `Page` na saída.
+A primeira tentativa deste gabarito foi escrever o mixin como uma **classe abstrata** com um
+construtor de dez parâmetros. Não funcionou — e o erro foi meu, não da apostila: um mixin só é
+aplicado quando a assinatura do construtor **casa** com um construtor real da classe alvo, e
+`PageImpl` não tem nenhum com dez parâmetros.
 
-E a solução é melhor do que o remendo pelo mesmo motivo do `VIA_DTO`: **não acoplar o conteúdo do
-cache a uma classe interna do Spring.** Um `PageImpl` cacheado hoje é uma incompatibilidade binária
-esperando o próximo upgrade — com a agravante de que os dados já estão gravados no Redis.
+A técnica correta — a da apostila, e a que o `javify-catalogo-spring` usa — é outra: uma
+**interface** anotada com `@JsonDeserialize(as = CustomPageImpl.class)`, delegando para uma subclasse
+real de `PageImpl` que tem um `@JsonCreator`:
+
+```java
+@JsonIgnoreProperties(ignoreUnknown = true, value = {"pageable", "sort"})
+class CustomPageImpl<T> extends PageImpl<T> {
+    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+    public CustomPageImpl(@JsonProperty("content") List<T> content,
+                          @JsonProperty("number") int number,
+                          @JsonProperty("size") int size,
+                          @JsonProperty("totalElements") Long totalElements) { ... }
+}
+
+@JsonDeserialize(as = CustomPageImpl.class)
+interface PageImplMixIn { }
+```
+
+**Verificado com Spring Boot 4.1.0 e Jackson 3.1.4**: o `PageImpl` vai e volta do serializador
+íntegro — `total=42`, `pagina=0`, conteúdo preservado.
+
+**Ainda assim, este gabarito guarda um record próprio no cache** —
+[`PaginaRestaurantes`](../jfood-catalogo/src/main/java/br/com/unipds/jfood/catalogo/domain/PaginaRestaurantes.java),
+convertido para `Page` pelo controller. Não porque o mixin falhe, mas pelo argumento que a **própria
+apostila levanta** logo abaixo do código dela: *"numa arquitetura estritamente limpa, o serviço
+mapearia o `PageImpl` para um DTO seu e o Redis cachearia apenas esse DTO"*.
+
+É a mesma razão do `VIA_DTO` no HTTP: **não acoplar o conteúdo do cache a uma classe interna do
+Spring.** Um `PageImpl` gravado no Redis hoje é uma incompatibilidade esperando o próximo upgrade —
+com o agravante de que os dados já estão lá. As duas soluções são defensáveis; o mixin é o caminho
+mais curto, o DTO é o mais duradouro.
 
 **(c) Self-invocation, de novo.** O método `@Cacheable` não pode ser envolvido por outro método do
 **mesmo** bean que faça a conversão para `Page`: a chamada interna passa por `this`, não pelo proxy,
