@@ -4,6 +4,7 @@ import br.com.unipds.jfood.administrativo.service.PedidoService;
 import br.com.unipds.jfood.administrativo.web.dto.PedidoResumoResponse;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,5 +32,13 @@ public class PedidoController {
     public ResponseEntity<List<PedidoResumoResponse>> listarPedidosDoClienteComFetch(
             @PathVariable Long clienteId) {
         return ResponseEntity.ok(pedidoService.listarPedidosDoClienteComFetch(clienteId));
+    }
+
+    /** Remove um item do pedido. Confira no banco se a linha sumiu mesmo. */
+    @DeleteMapping("/pedidos/{pedidoId}/itens/{itemPedidoId}")
+    public ResponseEntity<Void> removerItem(@PathVariable Long pedidoId,
+                                            @PathVariable Long itemPedidoId) {
+        pedidoService.removerItem(pedidoId, itemPedidoId);
+        return ResponseEntity.noContent().build();
     }
 }

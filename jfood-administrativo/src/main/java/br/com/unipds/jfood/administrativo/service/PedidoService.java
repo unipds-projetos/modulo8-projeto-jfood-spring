@@ -68,4 +68,23 @@ public class PedidoService {
                         pedido.getValorTotal()))
                 .toList();
     }
+
+    /**
+     * Remove um item do pedido tirando-o da COLECAO -- sem chamar delete() em
+     * lugar nenhum.
+     *
+     * Rode isto ANTES de declarar orphanRemoval e confira no banco: a linha de
+     * item_pedido continua la. Remover da lista em memoria nao remove do banco;
+     * o CascadeType.REMOVE tambem nao ajuda, porque ele age quando o PAI e
+     * deletado, e o pai aqui esta vivo.
+     */
+    @Transactional
+    public void removerItem(Long pedidoId, Long itemPedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new PedidoNaoEncontradoException(pedidoId));
+
+        pedido.getItens().removeIf(item -> item.getId().equals(itemPedidoId));
+        pedido.recalcularValorTotal();
+        // dirty checking grava o novo valor_total ao fechar a transacao
+    }
 }
