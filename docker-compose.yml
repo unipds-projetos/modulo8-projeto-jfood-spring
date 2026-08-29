@@ -1,0 +1,22 @@
+services:
+
+  # Aula 2 — o banco transacional do JFood: usuarios, pedidos e pagamentos
+  postgres:
+    image: postgres:16
+    container_name: jfood-postgres
+    environment:
+      POSTGRES_DB: jfood-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - jfood_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jfood-db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  jfood_postgres_data:
