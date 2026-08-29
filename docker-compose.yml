@@ -75,8 +75,28 @@ services:
       retries: 20
       start_period: 60s
 
+  # Aula 11 — a recomendacao por avaliacoes
+  neo4j:
+    image: neo4j:2026-trixie
+    container_name: jfood-neo4j
+    restart: always
+    environment:
+      NEO4J_AUTH: neo4j/neo4jpassword
+    ports:
+      - "7474:7474"     # interface web (Neo4J Browser)
+      - "7687:7687"     # protocolo binario Bolt (aplicacao Java)
+    volumes:
+      - jfood_neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
 volumes:
   jfood_postgres_data:
   jfood_mongo_data:
   jfood_redis_data:
   jfood_cassandra_data:
+  jfood_neo4j_data:
