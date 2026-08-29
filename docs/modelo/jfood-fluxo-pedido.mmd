@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    actor C as Cliente
+    participant CAT as jfood-catalogo
+    participant RD as Redis
+    participant MG as MongoDB
+    participant ADM as jfood-administrativo
+    participant PG as PostgreSQL
+    participant TRK as jfood-tracking
+    participant CS as Cassandra
+
+    C->>CAT: abre a tela do restaurante
+    CAT->>RD: GET cardapio:{id}
+    alt cache hit
+        RD-->>CAT: documento em < 1 ms
+    else cache miss
+        CAT->>MG: findById (1 documento, 1 consulta)
+        MG-->>CAT: restaurante + secoes + itens
+        CAT->>RD: SET com TTL + jitter
+    end
+    CAT-->>C: cardapio
+
+    C->>ADM: POST /pedidos (itens escolhidos)
+    Note over ADM,PG: transacao unica: pedido + itens + valor_total
+    ADM->>PG: INSERT pedido, INSERT item_pedido
+    PG-->>ADM: pedido CRIADO
+
+    C->>ADM: POST /pedidos/{id}/confirmar
+    Note over ADM,PG: SELECT FOR UPDATE, lock_timeout 3 s
+    ADM->>PG: lock -> verifica status -> grava + pagamento
+    PG-->>ADM: CONFIRMADO (exatamente um pagamento)
+
+    Note over ADM,PG: fila de despacho: FOR UPDATE SKIP LOCKED, lotes de 20
+    ADM->>PG: despacha e marca despachado_em
+
+    loop a cada 5 s enquanto a entrega dura
+        TRK->>CS: INSERT ... USING TTL 90 dias
+        Note right of CS: 40.000 pontos/s no pico
+    end
+    C->>TRK: onde esta meu pedido?
+    TRK->>CS: uma particao, uma leitura
+    CS-->>TRK: ultima posicao
+    TRK-->>C: 202 / posicao no mapa

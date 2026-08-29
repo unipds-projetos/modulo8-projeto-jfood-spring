@@ -1,0 +1,40 @@
+flowchart TB
+    subgraph APPS["Aplicativos"]
+        CLIENTE["App do cliente"]
+        ENTREGADOR["App do entregador"]
+        PAINEL["Painel de operacoes"]
+    end
+
+    subgraph SERVICOS["Microsservicos"]
+        ADM["jfood-administrativo<br/>porta 8080"]
+        CAT["jfood-catalogo<br/>porta 8082"]
+        TRK["jfood-tracking<br/>porta 8083"]
+        REC["jfood-recomendacoes<br/>porta 8084"]
+    end
+
+    PG[("PostgreSQL<br/>usuarios, pedidos, pagamentos<br/><b>86 pedidos/s no pico</b><br/>~500 linhas/s")]
+    MG[("MongoDB<br/>catalogo e cardapios<br/><b>opcionais variam por restaurante</b><br/>1 documento = 1 tela")]
+    RD[("Redis<br/>cache do cardapio e contadores<br/><b>pico de 2h, 2x por dia</b><br/>latencia < 1 ms")]
+    CS[("Cassandra<br/>tracking de entregadores<br/><b>40.000 pontos/s</b><br/>1 TB/mes, TTL de 90 dias")]
+    N4[("Neo4J<br/>recomendacao por avaliacoes<br/><b>3 saltos de travessia</b><br/>banco derivado")]
+
+    CLIENTE --> ADM
+    CLIENTE --> CAT
+    CLIENTE --> REC
+    ENTREGADOR --> TRK
+    ENTREGADOR --> ADM
+    PAINEL --> ADM
+
+    ADM --> PG
+    CAT --> RD
+    CAT --> MG
+    TRK --> CS
+    REC --> N4
+
+    PG -. "batch noturno / CDC" .-> N4
+    MG -. "batch noturno / CDC" .-> N4
+
+    classDef banco fill:#eef,stroke:#446,stroke-width:2px
+    classDef servico fill:#efe,stroke:#464
+    class PG,MG,RD,CS,N4 banco
+    class ADM,CAT,TRK,REC servico
