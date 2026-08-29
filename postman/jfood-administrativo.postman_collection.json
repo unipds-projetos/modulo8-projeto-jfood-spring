@@ -1,0 +1,114 @@
+{
+  "info": {
+    "_postman_id": "c2e1a3b5-0000-4000-a000-000000000010",
+    "name": "JFood — Administrativo",
+    "description": "Servico administrativo do JFood (PostgreSQL, porta 8080). Uma pasta por aula; as pastas sao cumulativas, como as branches.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Aula 3 — Spring Data JPA",
+      "item": [
+        {
+          "name": "Historico do cliente (com N+1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos",
+              "host": ["{{administrativo}}"],
+              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos"]
+            },
+            "description": "Conte os 'Hibernate:' no log da aplicacao. Medido: 6 queries para 3 pedidos."
+          },
+          "response": []
+        },
+        {
+          "name": "Historico do cliente (com JOIN FETCH)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos-otimizado",
+              "host": ["{{administrativo}}"],
+              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos-otimizado"]
+            },
+            "description": "Mesma resposta da requisicao anterior, em 1 query."
+          },
+          "response": []
+        },
+        {
+          "name": "Forma 1 — derived query: pedidos por status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/pedidos?status=A_CAMINHO",
+              "host": ["{{administrativo}}"],
+              "path": ["api", "v1", "pedidos"],
+              "query": [{ "key": "status", "value": "A_CAMINHO" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forma 2 — JPQL: pedidos do cliente por categoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos/por-categoria?categoria=Italiana",
+              "host": ["{{administrativo}}"],
+              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos", "por-categoria"],
+              "query": [{ "key": "categoria", "value": "Italiana" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forma 3 — native query: busca textual de restaurante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/restaurantes/busca?termo=pizza",
+              "host": ["{{administrativo}}"],
+              "path": ["api", "v1", "restaurantes", "busca"],
+              "query": [{ "key": "termo", "value": "pizza" }]
+            },
+            "description": "to_tsvector/plainto_tsquery acha 'Pizzaria Bella Napoli' E 'Forno & Pizza' -- inclusive o que tem a palavra no meio, que o LIKE 'Pizza%' da Etapa 2 nao alcancava."
+          },
+          "response": []
+        },
+        {
+          "name": "Forma 4 — projection: resumo do historico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/clientes/{{clienteId}}/pedidos/resumo",
+              "host": ["{{administrativo}}"],
+              "path": ["api", "v1", "clientes", "{{clienteId}}", "pedidos", "resumo"]
+            },
+            "description": "Tres colunas no SELECT, tres campos no JSON. A entidade nem chega a ser instanciada."
+          },
+          "response": []
+        },
+        {
+          "name": "Remover item do pedido (orphanRemoval)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{administrativo}}/api/v1/pedidos/{{pedidoId}}/itens/1",
+              "host": ["{{administrativo}}"],
+              "path": ["api", "v1", "pedidos", "{{pedidoId}}", "itens", "1"]
+            },
+            "description": "Confira no banco que a linha de item_pedido sumiu. Antes de orphanRemoval, ela ficava."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
