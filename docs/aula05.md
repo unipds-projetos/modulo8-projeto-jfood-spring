@@ -142,8 +142,10 @@ ninguém espera resposta — então a resposta certa é tentar de novo:
 public void recalcularValorTotal(Long pedidoId) { ... }
 ```
 
-> **Nota de versão.** A apostila usa o `@Retryable` do projeto `spring-retry`, com `retryFor`,
-> `maxAttempts` e `@Backoff`. No Spring Boot 4 / Spring Framework 7 o retry nasceu no **núcleo**
+> **Nota de versão.** Materiais mais antigos usam o `@Retryable` do projeto `spring-retry`, com
+> `retryFor`, `maxAttempts` e `@Backoff` — ele **não está no BOM do Spring Boot 4** e, sem versão
+> explícita, o build falha com `'dependencies.dependency.version' ... is missing`. No Spring Boot 4 /
+> Spring Framework 7 o retry nasceu no **núcleo**
 > (`org.springframework.resilience.annotation`), com `includes`, `maxRetries`, `delay`,
 > `multiplier` e `jitter` na própria anotação, ligado por `@EnableResilientMethods`. É a mesma ideia,
 > sem dependência externa — e o `spring-boot-starter-aop` virou `spring-boot-starter-aspectj`, que
